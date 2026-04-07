@@ -1,9 +1,9 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { auth, AuthRequest, requireClassMember, requireRole } from '../middleware/auth';
+import { auth, AuthRequest, requireClassMember, requireClassTeacher } from '../middleware/auth';
 
-export const announcementRouter = Router();
+export const announcementRouter = Router({ mergeParams: true });
 
 const createAnnouncementSchema = z.object({
     content: z.string().min(1).max(2000),
@@ -12,10 +12,9 @@ const createAnnouncementSchema = z.object({
 
 // ─── Create Announcement ───
 announcementRouter.post(
-    '/classes/:classId/announcements',
+    '/',
     auth,
-    requireRole('TEACHER', 'ADMIN'),
-    requireClassMember,
+    requireClassTeacher,
     async (req: AuthRequest, res: Response) => {
         try {
             const data = createAnnouncementSchema.parse(req.body);
@@ -35,7 +34,7 @@ announcementRouter.post(
 );
 
 // ─── List Announcements ───
-announcementRouter.get('/classes/:classId/announcements', auth, requireClassMember, async (req: AuthRequest, res: Response) => {
+announcementRouter.get('/', auth, requireClassMember, async (req: AuthRequest, res: Response) => {
     try {
         const announcements = await prisma.announcement.findMany({
             where: { classId: req.params.classId },

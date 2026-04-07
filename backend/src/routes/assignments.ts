@@ -1,9 +1,9 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { auth, AuthRequest, requireClassMember, requireRole } from '../middleware/auth';
+import { auth, AuthRequest, requireClassMember, requireClassTeacher, requireRole } from '../middleware/auth';
 
-export const assignmentRouter = Router();
+export const assignmentRouter = Router({ mergeParams: true });
 
 const createAssignmentSchema = z.object({
     title: z.string().min(1).max(200),
@@ -21,19 +21,19 @@ const gradeSchema = z.object({
 
 // ─── Create Assignment (Teacher) ───
 assignmentRouter.post(
-    '/classes/:classId/assignments',
+    '/',
     auth,
-    requireRole('TEACHER', 'ADMIN'),
-    requireClassMember,
+    requireClassTeacher,
     async (req: AuthRequest, res: Response) => {
         try {
             const data = createAssignmentSchema.parse(req.body);
+            const { classId } = req.params;
             const assignment = await prisma.assignment.create({
                 data: {
                     ...data,
                     dueDate: new Date(data.dueDate),
                     attachments: data.attachments || [],
-                    classId: req.params.classId,
+                    classId,
                     teacherId: req.userId!,
                 },
                 include: { teacher: { select: { id: true, name: true, avatarUrl: true } } },
@@ -50,10 +50,11 @@ assignmentRouter.post(
 );
 
 // ─── List Assignments ───
-assignmentRouter.get('/classes/:classId/assignments', auth, requireClassMember, async (req: AuthRequest, res: Response) => {
+assignmentRouter.get('/', auth, requireClassMember, async (req: AuthRequest, res: Response) => {
     try {
+        const { classId } = req.params;
         const assignments = await prisma.assignment.findMany({
-            where: { classId: req.params.classId },
+            where: { classId },
             include: {
                 teacher: { select: { id: true, name: true, avatarUrl: true } },
                 _count: { select: { submissions: true } },
@@ -67,7 +68,7 @@ assignmentRouter.get('/classes/:classId/assignments', auth, requireClassMember, 
 });
 
 // ─── Submit Assignment (Student) ───
-assignmentRouter.post('/assignments/:id/submit', auth, async (req: AuthRequest, res: Response) => {
+assignmentRouter.post('/:id/submit', auth, async (req: AuthRequest, res: Response) => {
     try {
         const { fileUrl, textBody } = req.body;
         if (!fileUrl && !textBody) {
@@ -75,11 +76,22 @@ assignmentRouter.post('/assignments/:id/submit', auth, async (req: AuthRequest, 
             return;
         }
 
-        const assignment = await prisma.assignment.findUnique({ where: { id: req.params.id } });
+        const assignment = await prisma.assignment.findUnique({
+            where: { id: req.params.id },
+            include: { class: { include: { members: { where: { userId: req.userId! } } } } }
+        });
+
         if (!assignment) {
             res.status(404).json({ success: false, error: 'Assignment not found' });
             return;
         }
+
+        // Verify membership
+        if (assignment.class.members.length === 0) {
+            res.status(403).json({ success: false, error: 'Not a member of this class' });
+            return;
+        }
+
         if (assignment.status === 'CLOSED') {
             res.status(400).json({ success: false, error: 'Assignment is closed' });
             return;
@@ -98,8 +110,23 @@ assignmentRouter.post('/assignments/:id/submit', auth, async (req: AuthRequest, 
 });
 
 // ─── Get Submissions (Teacher) ───
-assignmentRouter.get('/assignments/:id/submissions', auth, requireRole('TEACHER', 'ADMIN'), async (req: AuthRequest, res: Response) => {
+assignmentRouter.get('/:id/submissions', auth, async (req: AuthRequest, res: Response) => {
     try {
+        const assignment = await prisma.assignment.findUnique({
+            where: { id: req.params.id },
+            include: { class: { include: { members: { where: { userId: req.userId!, role: 'TEACHER' } } } } }
+        });
+
+        if (!assignment) {
+            res.status(404).json({ success: false, error: 'Assignment not found' });
+            return;
+        }
+
+        if (assignment.class.members.length === 0) {
+            res.status(403).json({ success: false, error: 'Only the class teacher can view submissions' });
+            return;
+        }
+
         const submissions = await prisma.submission.findMany({
             where: { assignmentId: req.params.id },
             include: { student: { select: { id: true, name: true, email: true, avatarUrl: true } } },
@@ -112,14 +139,41 @@ assignmentRouter.get('/assignments/:id/submissions', auth, requireRole('TEACHER'
 });
 
 // ─── Grade Submission (Teacher) ───
-assignmentRouter.patch('/submissions/:id/grade', auth, requireRole('TEACHER', 'ADMIN'), async (req: AuthRequest, res: Response) => {
+assignmentRouter.patch('/submissions/:id/grade', auth, async (req: AuthRequest, res: Response) => {
     try {
         const data = gradeSchema.parse(req.body);
-        const submission = await prisma.submission.update({
+        
+        const submission = await prisma.submission.findUnique({
+            where: { id: req.params.id },
+            include: { 
+                assignment: { 
+                    include: { 
+                        class: { 
+                            include: { 
+                                members: { where: { userId: req.userId!, role: 'TEACHER' } } 
+                            } 
+                        } 
+                    } 
+                } 
+            }
+        });
+
+        if (!submission) {
+            res.status(404).json({ success: false, error: 'Submission not found' });
+            return;
+        }
+
+        if (submission.assignment.class.members.length === 0) {
+            res.status(403).json({ success: false, error: 'Only the class teacher can grade submissions' });
+            return;
+        }
+
+        const updated = await prisma.submission.update({
             where: { id: req.params.id },
             data: { marks: data.marks, feedback: data.feedback },
         });
-        res.json({ success: true, data: submission });
+        
+        res.json({ success: true, data: updated });
     } catch (err) {
         if (err instanceof z.ZodError) {
             res.status(400).json({ success: false, error: err.errors[0].message });

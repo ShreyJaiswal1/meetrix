@@ -1,10 +1,66 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { auth, AuthRequest, requireRole } from '../middleware/auth';
+import { auth, AuthRequest, requireRole, requireClassMember, requireClassTeacher } from '../middleware/auth';
 import { generateInviteCode } from '@meetrix/utils';
+import { sessionRouter } from './sessions';
+import { resourceRouter } from './resources';
+import { assignmentRouter } from './assignments';
+import { announcementRouter } from './announcements';
 
 export const classRouter = Router();
+
+// ─── Sub-routers (Nested under /api/classes/:classId) ───
+classRouter.use('/:classId/sessions', sessionRouter);
+classRouter.use('/:classId/resources', resourceRouter);
+classRouter.use('/:classId/assignments', assignmentRouter);
+classRouter.use('/:classId/announcements', announcementRouter);
+
+// ─── Global Aggregators (User's cross-class data) ───
+classRouter.get('/global/sessions', auth, async (req: AuthRequest, res: Response) => {
+    try {
+        const memberships = await prisma.classMember.findMany({ where: { userId: req.userId } });
+        const classIds = memberships.map(m => m.classId);
+        const sessions = await prisma.liveSession.findMany({
+            where: { classId: { in: classIds } },
+            include: { host: { select: { id: true, name: true, avatarUrl: true } }, class: { select: { name: true } } },
+            orderBy: { scheduledAt: 'asc' }
+        });
+        res.json({ success: true, data: sessions });
+    } catch {
+        res.status(500).json({ success: false, error: 'Failed to fetch global sessions' });
+    }
+});
+
+classRouter.get('/global/assignments', auth, async (req: AuthRequest, res: Response) => {
+    try {
+        const memberships = await prisma.classMember.findMany({ where: { userId: req.userId } });
+        const classIds = memberships.map(m => m.classId);
+        const assignments = await prisma.assignment.findMany({
+            where: { classId: { in: classIds } },
+            include: { teacher: { select: { id: true, name: true, avatarUrl: true } }, class: { select: { name: true } } },
+            orderBy: { dueDate: 'asc' }
+        });
+        res.json({ success: true, data: assignments });
+    } catch {
+        res.status(500).json({ success: false, error: 'Failed to fetch global assignments' });
+    }
+});
+
+classRouter.get('/global/resources', auth, async (req: AuthRequest, res: Response) => {
+    try {
+        const memberships = await prisma.classMember.findMany({ where: { userId: req.userId } });
+        const classIds = memberships.map(m => m.classId);
+        const resources = await prisma.resource.findMany({
+            where: { classId: { in: classIds } },
+            include: { uploader: { select: { id: true, name: true, avatarUrl: true } }, class: { select: { name: true } } },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json({ success: true, data: resources });
+    } catch {
+        res.status(500).json({ success: false, error: 'Failed to fetch global resources' });
+    }
+});
 
 const createClassSchema = z.object({
     name: z.string().min(2).max(100),
@@ -65,7 +121,7 @@ classRouter.get('/', auth, async (req: AuthRequest, res: Response) => {
 });
 
 // ─── Get Class Details ───
-classRouter.get('/:id', auth, async (req: AuthRequest, res: Response) => {
+classRouter.get('/:id', auth, requireClassMember, async (req: AuthRequest, res: Response) => {
     try {
         const cls = await prisma.class.findUnique({
             where: { id: req.params.id },
@@ -123,18 +179,8 @@ classRouter.post('/join', auth, async (req: AuthRequest, res: Response) => {
 });
 
 // ─── Delete Class (Teacher only) ───
-classRouter.delete('/:id', auth, async (req: AuthRequest, res: Response) => {
+classRouter.delete('/:id', auth, requireClassTeacher, async (req: AuthRequest, res: Response) => {
     try {
-        const cls = await prisma.class.findUnique({ where: { id: req.params.id } });
-        if (!cls) {
-            res.status(404).json({ success: false, error: 'Class not found' });
-            return;
-        }
-        if (cls.teacherId !== req.userId) {
-            res.status(403).json({ success: false, error: 'Only the class teacher can delete' });
-            return;
-        }
-
         await prisma.class.delete({ where: { id: req.params.id } });
         res.json({ success: true, message: 'Class deleted' });
     } catch {

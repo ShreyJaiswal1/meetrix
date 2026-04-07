@@ -30,10 +30,6 @@ app.get('/api/health', (_req, res) => {
 // ─── Routes ───
 app.use('/api/auth', authRouter);
 app.use('/api/classes', classRouter);
-app.use('/api/resources', resourceRouter);
-app.use('/api/assignments', assignmentRouter);
-app.use('/api/announcements', announcementRouter);
-app.use('/api/sessions', sessionRouter);
 app.use('/api/notifications', notificationRouter);
 
 // ─── Socket.io ───

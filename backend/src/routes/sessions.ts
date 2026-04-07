@@ -1,9 +1,9 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { auth, AuthRequest, requireRole, requireClassMember } from '../middleware/auth';
+import { auth, AuthRequest, requireRole, requireClassMember, requireClassTeacher } from '../middleware/auth';
 
-export const sessionRouter = Router();
+export const sessionRouter = Router({ mergeParams: true });
 
 const createSessionSchema = z.object({
     title: z.string().min(1).max(200),
@@ -12,21 +12,21 @@ const createSessionSchema = z.object({
 
 // ─── Schedule Live Session ───
 sessionRouter.post(
-    '/classes/:classId/sessions',
+    '/',
     auth,
-    requireRole('TEACHER', 'ADMIN'),
-    requireClassMember,
+    requireClassTeacher,
     async (req: AuthRequest, res: Response) => {
         try {
             const data = createSessionSchema.parse(req.body);
-            const jitsiRoom = `meetrix-${req.params.classId}-${Date.now()}`;
+            const { classId } = req.params;
+            const jitsiRoom = `meetrix-${classId}-${Date.now()}`;
 
             const session = await prisma.liveSession.create({
                 data: {
                     ...data,
                     scheduledAt: new Date(data.scheduledAt),
                     jitsiRoom,
-                    classId: req.params.classId,
+                    classId,
                     hostId: req.userId!,
                 },
                 include: { host: { select: { id: true, name: true, avatarUrl: true } } },
@@ -44,10 +44,11 @@ sessionRouter.post(
 );
 
 // ─── List Sessions ───
-sessionRouter.get('/classes/:classId/sessions', auth, requireClassMember, async (req: AuthRequest, res: Response) => {
+sessionRouter.get('/', auth, requireClassMember, async (req: AuthRequest, res: Response) => {
     try {
+        const { classId } = req.params;
         const sessions = await prisma.liveSession.findMany({
-            where: { classId: req.params.classId },
+            where: { classId },
             include: { host: { select: { id: true, name: true, avatarUrl: true } } },
             orderBy: { scheduledAt: 'desc' },
         });
@@ -58,7 +59,7 @@ sessionRouter.get('/classes/:classId/sessions', auth, requireClassMember, async 
 });
 
 // ─── Get Join Info ───
-sessionRouter.get('/sessions/:id/join', auth, async (req: AuthRequest, res: Response) => {
+sessionRouter.get('/:id/join', auth, async (req: AuthRequest, res: Response) => {
     try {
         const session = await prisma.liveSession.findUnique({ where: { id: req.params.id } });
         if (!session) {
@@ -70,5 +71,21 @@ sessionRouter.get('/sessions/:id/join', auth, async (req: AuthRequest, res: Resp
         res.json({ success: true, data: { jitsiUrl, jitsiRoom: session.jitsiRoom, title: session.title } });
     } catch {
         res.status(500).json({ success: false, error: 'Failed to get join info' });
+    }
+});
+
+// ─── Stop/Delete Session (Teacher) ───
+sessionRouter.delete('/:id', auth, requireClassTeacher, async (req: AuthRequest, res: Response) => {
+    try {
+        const session = await prisma.liveSession.findUnique({ where: { id: req.params.id } });
+        if (!session) {
+            res.status(404).json({ success: false, error: 'Session not found' });
+            return;
+        }
+
+        await prisma.liveSession.delete({ where: { id: req.params.id } });
+        res.json({ success: true, message: 'Session stopped and removed' });
+    } catch {
+        res.status(500).json({ success: false, error: 'Failed to stop session' });
     }
 });

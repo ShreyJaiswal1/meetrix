@@ -1,9 +1,9 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { auth, AuthRequest, requireClassMember } from '../middleware/auth';
+import { auth, AuthRequest, requireClassMember, requireClassTeacher } from '../middleware/auth';
 
-export const resourceRouter = Router();
+export const resourceRouter = Router({ mergeParams: true });
 
 const createResourceSchema = z.object({
     title: z.string().min(1).max(200),
@@ -13,7 +13,7 @@ const createResourceSchema = z.object({
 });
 
 // ─── Upload Resource ───
-resourceRouter.post('/classes/:classId/resources', auth, requireClassMember, async (req: AuthRequest, res: Response) => {
+resourceRouter.post('/', auth, requireClassTeacher, async (req: AuthRequest, res: Response) => {
     try {
         const data = createResourceSchema.parse(req.body);
         const resource = await prisma.resource.create({
@@ -31,7 +31,7 @@ resourceRouter.post('/classes/:classId/resources', auth, requireClassMember, asy
 });
 
 // ─── List Resources ───
-resourceRouter.get('/classes/:classId/resources', auth, requireClassMember, async (req: AuthRequest, res: Response) => {
+resourceRouter.get('/', auth, requireClassMember, async (req: AuthRequest, res: Response) => {
     try {
         const { folder } = req.query;
         const where: any = { classId: req.params.classId };
@@ -49,7 +49,7 @@ resourceRouter.get('/classes/:classId/resources', auth, requireClassMember, asyn
 });
 
 // ─── Delete Resource ───
-resourceRouter.delete('/resources/:id', auth, async (req: AuthRequest, res: Response) => {
+resourceRouter.delete('/:id', auth, async (req: AuthRequest, res: Response) => {
     try {
         const resource = await prisma.resource.findUnique({ where: { id: req.params.id } });
         if (!resource) {

@@ -40,7 +40,7 @@ export function requireRole(...roles: string[]) {
 export async function requireClassMember(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     const classId = req.params.classId || req.params.id;
     if (!classId || !req.userId) {
-        res.status(400).json({ success: false, error: 'Missing class or user' });
+        res.status(400).json({ success: false, error: 'Missing class or user context' });
         return;
     }
 
@@ -49,7 +49,27 @@ export async function requireClassMember(req: AuthRequest, res: Response, next: 
     });
 
     if (!member) {
-        res.status(403).json({ success: false, error: 'Not a member of this class' });
+        res.status(403).json({ success: false, error: 'Access denied: Not a member of this class' });
+        return;
+    }
+
+    next();
+}
+
+// Verify the user is a TEACHER in a given class
+export async function requireClassTeacher(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    const classId = req.params.classId || req.params.id;
+    if (!classId || !req.userId) {
+        res.status(400).json({ success: false, error: 'Missing class or user context' });
+        return;
+    }
+
+    const member = await prisma.classMember.findUnique({
+        where: { classId_userId: { classId, userId: req.userId } },
+    });
+
+    if (!member || member.role !== 'TEACHER') {
+        res.status(403).json({ success: false, error: 'Forbidden: Only class teachers can perform this action' });
         return;
     }
 
