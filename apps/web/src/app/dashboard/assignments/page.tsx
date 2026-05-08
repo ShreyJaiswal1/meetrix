@@ -2,34 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import api from '@/lib/api';
+import { useClassStore } from '@/stores/classes';
 import { ClipboardList, Calendar, User, BookOpen, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface GlobalAssignment {
-    id: string;
-    title: string;
-    description?: string;
-    dueDate: string;
-    maxMarks: number;
-    createdAt: string;
-    classId: string;
-    class: { name: string };
-    teacher: { id: string; name: string; avatarUrl?: string };
-}
-
 export default function GlobalAssignmentsPage() {
-    const [assignments, setAssignments] = useState<GlobalAssignment[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { globalAssignments: assignments, isLoadingAssignments: loading, fetchGlobalAssignments } = useClassStore();
 
     useEffect(() => {
-        api.get('/classes/global/assignments')
-            .then(res => {
-                if (res.data.success) setAssignments(res.data.data);
-            })
-            .catch(() => toast.error('Failed to fetch assignments'))
-            .finally(() => setLoading(false));
-    }, []);
+        fetchGlobalAssignments().catch(() => toast.error('Failed to fetch assignments'));
+    }, [fetchGlobalAssignments]);
 
     const formatDueDate = (dateStr: string) => {
         const date = new Date(dateStr);

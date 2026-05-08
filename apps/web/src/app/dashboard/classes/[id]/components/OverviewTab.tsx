@@ -20,18 +20,20 @@ export default function OverviewTab({ cls, isClassTeacher, deleting, handleDelet
                     { label: 'Assignments', count: cls._count.assignments, Icon: ClipboardList },
                     { label: 'Announcements', count: cls._count.announcements, Icon: Megaphone },
                 ].map(({ label, count, Icon }) => (
-                    <div key={label} className="glass-card p-5 flex flex-col items-center gap-2 text-center">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(124,92,252,0.1)' }}>
-                            <Icon size={18} style={{ color: 'var(--secondary)' }} />
+                    <div key={label} className="p-5 flex flex-col gap-3 rounded-lg border bg-[var(--bg)]" style={{ borderColor: 'var(--border)' }}>
+                        <div className="flex items-center justify-between">
+                            <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>{label}</div>
+                            <Icon size={14} style={{ color: 'var(--text-3)' }} />
                         </div>
-                        <div className="text-2xl font-bold" style={{ color: 'var(--text-1)' }}>{count}</div>
-                        <div className="text-xs" style={{ color: 'var(--text-3)' }}>{label}</div>
+                        <div className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-1)' }}>
+                            {count}
+                        </div>
                     </div>
                 ))}
             </div>
 
             {/* Teacher Card */}
-            <div className="glass-card p-5 mb-6">
+            <div className="p-5 mb-6 rounded-lg border bg-[var(--bg)]" style={{ borderColor: 'var(--border)' }}>
                 <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-2)' }}>Class Teacher</h3>
                 <div className="flex items-center gap-3">
                     <Avatar src={cls.teacher.avatarUrl} name={cls.teacher.name} size={10} />
@@ -45,10 +47,10 @@ export default function OverviewTab({ cls, isClassTeacher, deleting, handleDelet
             </div>
 
             {isClassTeacher && (
-                <div className="rounded-2xl border p-5" style={{ borderColor: 'rgba(239,68,68,0.2)', background: 'var(--surface)' }}>
-                    <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgb(239,68,68)' }}>Danger Zone</h3>
-                    <button onClick={handleDelete} disabled={deleting} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium cursor-pointer transition-colors disabled:opacity-50" style={{ color: 'rgb(239,68,68)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
-                        <Trash2 size={16} /> {deleting ? 'Deleting...' : 'Delete Class'}
+                <div className="rounded-lg border p-5 bg-[var(--bg)]" style={{ borderColor: 'rgba(239,68,68,0.2)' }}>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-wider mb-4" style={{ color: 'rgb(239,68,68)' }}>Danger Zone</h3>
+                    <button onClick={handleDelete} disabled={deleting} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors disabled:opacity-50" style={{ color: 'rgb(239,68,68)', background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
+                        <Trash2 size={14} /> {deleting ? 'Deleting...' : 'Delete Class'}
                     </button>
                 </div>
             )}

@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
+import { useClassStore, ClassDetail } from '@/stores/classes';
+import api from '@/lib/api';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -30,24 +31,7 @@ import LiveSessionsTab from './components/LiveSessionsTab';
 import { timeAgo, formatDueDate, dueDateStatus } from './components/utils';
 
 /* ── Interfaces ── */
-interface ClassMember {
-  id: string;
-  role: string;
-  joinedAt: string;
-  user: { id: string; name: string; email: string; avatarUrl?: string };
-}
-interface ClassDetail {
-  id: string;
-  name: string;
-  subject: string;
-  description?: string;
-  inviteCode: string;
-  coverUrl?: string;
-  createdAt: string;
-  teacher: { id: string; name: string; email: string; avatarUrl?: string };
-  members: ClassMember[];
-  _count: { resources: number; assignments: number; announcements: number };
-}
+// Imported ClassDetail from store
 
 type Tab = 'overview' | 'announcements' | 'assignments' | 'resources' | 'live' | 'members' | 'invite';
 
@@ -56,24 +40,30 @@ export default function ClassDetailPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
 
-  const [cls, setCls] = useState<ClassDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { fetchClassDetail, classDetails, loadingClassDetails } = useClassStore();
+  
+  const classIdStr = typeof params.id === 'string' ? params.id : params.id?.[0];
+  const cls = classIdStr ? classDetails[classIdStr]?.data : null;
+  const loading = classIdStr ? (loadingClassDetails[classIdStr] ?? true) : false;
+
   const [activeTab, setActiveTab] = useState<Tab>('announcements');
   const [copiedCode, setCopiedCode] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   /* ─── Fetch Class ─── */
   useEffect(() => {
-    if (!params.id) return;
-    api
-      .get(`/classes/${params.id}`)
-      .then((res) => {
-        if (res.data.success) setCls(res.data.data);
-        else router.push('/dashboard/classes');
-      })
-      .catch(() => router.push('/dashboard/classes'))
-      .finally(() => setLoading(false));
-  }, [params.id, router]);
+    if (!classIdStr) return;
+    
+    // We initially check if it's already there
+    const existing = useClassStore.getState().classDetails[classIdStr]?.data;
+    if (!existing && !useClassStore.getState().loadingClassDetails[classIdStr]) {
+       // Only if it doesn't exist at all, we show loading
+    }
+    
+    fetchClassDetail(classIdStr).then((data) => {
+      if (!data) router.push('/dashboard/classes');
+    });
+  }, [classIdStr, fetchClassDetail, router]);
 
   if (loading) {
     return (

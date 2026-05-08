@@ -7,14 +7,9 @@ import { sessionRouter } from './sessions';
 import { resourceRouter } from './resources';
 import { assignmentRouter } from './assignments';
 import { announcementRouter } from './announcements';
+import { messageRouter } from './messages';
 
 export const classRouter = Router();
-
-// ─── Sub-routers (Nested under /api/classes/:classId) ───
-classRouter.use('/:classId/sessions', sessionRouter);
-classRouter.use('/:classId/resources', resourceRouter);
-classRouter.use('/:classId/assignments', assignmentRouter);
-classRouter.use('/:classId/announcements', announcementRouter);
 
 // ─── Global Aggregators (User's cross-class data) ───
 classRouter.get('/global/sessions', auth, async (req: AuthRequest, res: Response) => {
@@ -62,6 +57,15 @@ classRouter.get('/global/resources', auth, async (req: AuthRequest, res: Respons
     }
 });
 
+// ─── Sub-routers (Nested under /api/classes/:classId) ───
+classRouter.use('/:classId/sessions', sessionRouter);
+classRouter.use('/:classId/resources', resourceRouter);
+classRouter.use('/:classId/assignments', assignmentRouter);
+classRouter.use('/:classId/announcements', announcementRouter);
+classRouter.use('/:classId/messages', messageRouter);
+
+
+
 const createClassSchema = z.object({
     name: z.string().min(2).max(100),
     subject: z.string().min(1).max(50),
@@ -69,8 +73,8 @@ const createClassSchema = z.object({
     coverUrl: z.string().url().optional(),
 });
 
-// ─── Create Class (Teacher/Admin only) ───
-classRouter.post('/', auth, requireRole('TEACHER', 'ADMIN'), async (req: AuthRequest, res: Response) => {
+// ─── Create Class ───
+classRouter.post('/', auth, async (req: AuthRequest, res: Response) => {
     try {
         const data = createClassSchema.parse(req.body);
         const inviteCode = generateInviteCode();

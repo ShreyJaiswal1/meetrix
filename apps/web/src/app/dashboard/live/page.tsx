@@ -3,33 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import api from '@/lib/api';
+import { useClassStore, GlobalSession } from '@/stores/classes';
 import { Video, Calendar, Play, User, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface GlobalSession {
-    id: string;
-    title: string;
-    scheduledAt: string;
-    jitsiRoom: string;
-    classId: string;
-    class: { name: string };
-    host: { id: string; name: string; avatarUrl?: string };
-}
-
 export default function GlobalLivePage() {
     const router = useRouter();
-    const [sessions, setSessions] = useState<GlobalSession[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { globalSessions: sessions, isLoadingSessions: loading, fetchGlobalSessions } = useClassStore();
 
     useEffect(() => {
-        api.get('/classes/global/sessions')
-            .then(res => {
-                if (res.data.success) setSessions(res.data.data);
-            })
-            .catch(() => toast.error('Failed to fetch live classes'))
-            .finally(() => setLoading(false));
-    }, []);
+        fetchGlobalSessions().catch(() => toast.error('Failed to fetch live classes'));
+    }, [fetchGlobalSessions]);
 
     const joinSession = (s: GlobalSession) => {
         router.push(`/dashboard/classes/${s.classId}/sessions/${s.id}/room`);

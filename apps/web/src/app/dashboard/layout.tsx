@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Settings,
 } from 'lucide-react';
+import NotificationsDropdown from '@/components/NotificationsDropdown';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -66,11 +67,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!isAuthenticated || !user) return null;
 
   const initials = user.name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+    ? user.name
+        .split(' ')
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : 'U';
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg)' }}>
@@ -165,7 +168,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-white truncate">{user.name}</div>
-                <div className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{user.role}</div>
               </div>
             )}
             {!collapsed && (
@@ -195,13 +197,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex-1" />
 
           <div className="flex items-center gap-3">
-            <button className="relative p-2 rounded-xl cursor-pointer transition-colors" style={{ color: 'var(--text-2)', background: 'var(--surface)' }}>
-              <Bell size={18} />
-              <span
-                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full pulse-dot"
-                style={{ background: 'var(--error)' }}
-              />
-            </button>
+            <NotificationsDropdown />
           </div>
         </header>
 

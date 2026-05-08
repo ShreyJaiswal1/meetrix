@@ -2,35 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import api from '@/lib/api';
+import { useClassStore } from '@/stores/classes';
 import { FolderOpen, File, Download, User, BookOpen, Clock, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface GlobalResource {
-    id: string;
-    title: string;
-    description?: string;
-    fileUrl: string;
-    type: string;
-    size?: number;
-    createdAt: string;
-    classId: string;
-    class: { name: string };
-    uploader: { id: string; name: string; avatarUrl?: string };
-}
-
 export default function GlobalResourcesPage() {
-    const [resources, setResources] = useState<GlobalResource[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { globalResources: resources, isLoadingResources: loading, fetchGlobalResources } = useClassStore();
 
     useEffect(() => {
-        api.get('/classes/global/resources')
-            .then(res => {
-                if (res.data.success) setResources(res.data.data);
-            })
-            .catch(() => toast.error('Failed to fetch resources'))
-            .finally(() => setLoading(false));
-    }, []);
+        fetchGlobalResources().catch(() => toast.error('Failed to fetch resources'));
+    }, [fetchGlobalResources]);
 
     const formatSize = (bytes?: number) => {
         if (!bytes) return 'N/A';

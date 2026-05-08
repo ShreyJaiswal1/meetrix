@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import api from '@/lib/api';
+import { useClassStore } from '@/stores/classes';
 import { useAuthStore } from '@/stores/auth';
 import {
   Plus,
@@ -13,31 +13,17 @@ import {
   Users,
   KeyRound,
 } from 'lucide-react';
-
-interface ClassItem {
-  id: string;
-  name: string;
-  subject: string;
-  inviteCode: string;
-  myRole: string;
-  _count: { members: number; resources: number; assignments: number };
-  teacher: { id: string; name: string; avatarUrl?: string };
-}
-
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
 export default function ClassesListPage() {
   const user = useAuthStore((s) => s.user);
-  const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { classes, isLoadingClasses: loading, fetchClasses } = useClassStore();
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    api.get('/classes').then((res) => {
-      if (res.data.success) setClasses(res.data.data);
-    }).finally(() => setLoading(false));
-  }, []);
+    fetchClasses();
+  }, [fetchClasses]);
 
   const filtered = classes.filter(
     (c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.subject.toLowerCase().includes(search.toLowerCase())
