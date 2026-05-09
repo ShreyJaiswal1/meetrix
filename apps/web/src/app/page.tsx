@@ -120,18 +120,6 @@ export default function HomePage() {
         </div>
 
         <motion.div style={{ opacity: heroOpacity, scale: heroScale, y: heroY }} className="relative z-10 max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full text-xs font-semibold mb-8"
-            style={{ background: 'rgba(124,92,252,0.08)', color: 'var(--secondary)', border: '1px solid rgba(124,92,252,0.15)' }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: 'var(--success)' }} />
-            Open-source & free forever
-          </motion.div>
-
           {/* Heading */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}

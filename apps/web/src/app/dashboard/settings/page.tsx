@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Bell, Shield, Palette, Database, ExternalLink, HelpCircle, Save } from 'lucide-react';
+import { User, Bell, Shield, Palette, Database, ExternalLink, HelpCircle, Save, Shuffle, Check } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { toast } from 'sonner';
 
@@ -14,6 +14,26 @@ export default function SettingsPage() {
     const [name, setName] = useState(user?.name || '');
     const [saving, setSaving] = useState(false);
 
+    // Avatar state
+    const AVATAR_STYLES = ['miniavs', 'avataaars'];
+    const getAvatarUrl = (style: string, seed: string) =>
+        `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(seed)}`;
+    const [avatarSeed, setAvatarSeed] = useState(() => String(Date.now()));
+    const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarUrl || '');
+    const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+
+    const avatarOptions = AVATAR_STYLES.flatMap((style) =>
+        Array.from({ length: 5 }, (_, i) => ({
+            url: getAvatarUrl(style, avatarSeed + '-' + i),
+        }))
+    );
+
+    const shuffleAvatars = () => {
+        const newSeed = String(Date.now()) + Math.random().toString(36).slice(2, 6);
+        setAvatarSeed(newSeed);
+    };
+
+
     // Notification Preferences State (Mock)
     const [preferences, setPreferences] = useState({
         push: true,
@@ -23,13 +43,14 @@ export default function SettingsPage() {
 
     useEffect(() => {
         if (user?.name) setName(user.name);
-    }, [user?.name]);
+        if (user?.avatarUrl) setSelectedAvatar(user.avatarUrl);
+    }, [user?.name, user?.avatarUrl]);
 
     const handleSave = async () => {
         setSaving(true);
         try {
             if (activeTab === 'Profile') {
-                await updateProfile({ name });
+                await updateProfile({ name, avatarUrl: selectedAvatar || undefined });
                 toast.success('Profile updated successfully');
             } else if (activeTab === 'Notifications') {
                 // Mock saving preferences
@@ -81,16 +102,83 @@ export default function SettingsPage() {
                             <motion.div key="Profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="glass-card p-6">
                                 <h3 className="font-bold text-sm mb-6 pb-2 border-b" style={{ borderColor: 'var(--border)' }}>Personal Information</h3>
                                 <div className="flex items-center gap-6 mb-8">
-                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center text-white text-2xl font-bold shadow-soft">
-                                        {user?.name?.[0] || 'U'}
+                                    {/* Avatar Preview */}
+                                    <div
+                                        className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border-2"
+                                        style={{ borderColor: 'var(--secondary)', background: 'var(--surface)' }}
+                                    >
+                                        {selectedAvatar ? (
+                                            <img src={selectedAvatar} alt="avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary to-accent text-white text-2xl font-bold">
+                                                {user?.name?.[0] || 'U'}
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
-                                        <button className="px-4 py-2 rounded-xl bg-surface border text-xs font-bold mb-2 cursor-pointer hover:bg-[var(--border)] transition-colors" style={{ borderColor: 'var(--border)' }}>
-                                            Change Avatar
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAvatarPicker(v => !v)}
+                                            className="px-4 py-2 rounded-xl bg-surface border text-xs font-bold mb-2 cursor-pointer hover:bg-[var(--border)] transition-colors"
+                                            style={{ borderColor: 'var(--border)' }}
+                                        >
+                                            {showAvatarPicker ? 'Close Picker' : 'Change Avatar'}
                                         </button>
-                                        <p className="text-[10px] text-[var(--text-3)]">JPG, GIF or PNG. Max size of 800K</p>
+                                        <p className="text-[10px] text-[var(--text-3)]">Pick a DiceBear avatar or use your own</p>
                                     </div>
                                 </div>
+
+                                {/* Avatar Picker */}
+                                {showAvatarPicker && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="mb-6 p-4 rounded-xl border"
+                                        style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}
+                                    >
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-[10px] uppercase font-bold tracking-widest opacity-60">Choose Avatar</span>
+                                            <button
+                                                type="button"
+                                                onClick={shuffleAvatars}
+                                                className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg cursor-pointer transition-colors"
+                                                style={{ color: 'var(--secondary)', background: 'rgba(139,92,246,0.08)' }}
+                                            >
+                                                <Shuffle size={12} /> Shuffle
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-5 gap-3">
+                                            {avatarOptions.map(({ url }, i) => {
+                                                const isSelected = selectedAvatar === url;
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        type="button"
+                                                        onClick={() => setSelectedAvatar(url)}
+                                                        className="relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-all duration-200"
+                                                        style={{
+                                                            borderColor: isSelected ? 'var(--secondary)' : 'var(--border)',
+                                                            background: 'var(--surface)',
+                                                            boxShadow: isSelected ? '0 0 0 3px rgba(139,92,246,0.15)' : 'none',
+                                                            transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                                                        }}
+                                                    >
+                                                        <img src={url} alt="avatar option" className="w-full h-full object-cover p-1" />
+                                                        {isSelected && (
+                                                            <div
+                                                                className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                                                                style={{ background: 'var(--secondary)' }}
+                                                            >
+                                                                <Check size={10} className="text-white" strokeWidth={3} />
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                )}
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>

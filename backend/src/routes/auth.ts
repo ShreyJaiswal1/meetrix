@@ -25,7 +25,7 @@ const googleLoginSchema = z.object({
 
 const onboardSchema = z.object({
     name: z.string().min(2).max(50),
-    role: z.enum(['ADMIN', 'TEACHER', 'STUDENT']),
+    role: z.enum(['ADMIN', 'TEACHER', 'STUDENT']).default('STUDENT'),
     avatarUrl: z.string().url().optional().nullable(),
 });
 

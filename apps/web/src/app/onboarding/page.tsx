@@ -5,15 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'next/navigation';
 import { LogoFull } from '@/components/Logo';
-import { GraduationCap, BookOpen, Shield, ArrowRight, User, Shuffle, Check } from 'lucide-react';
+import { ArrowRight, User, Shuffle, Check } from 'lucide-react';
 
-type RoleOption = { value: string; label: string; icon: React.ReactNode; desc: string; color: string };
 
-const roles: RoleOption[] = [
-  { value: 'STUDENT', label: 'Student', icon: <GraduationCap size={28} />, desc: 'Join classes, submit work, and learn', color: 'var(--accent)' },
-  { value: 'TEACHER', label: 'Teacher', icon: <BookOpen size={28} />, desc: 'Create classes and manage students', color: 'var(--secondary)' },
-  { value: 'ADMIN', label: 'Admin', icon: <Shield size={28} />, desc: 'Manage the entire school', color: 'var(--primary)' },
-];
 
 const AVATAR_STYLES = [
   'miniavs',
@@ -33,7 +27,7 @@ export default function OnboardingPage() {
   const router = useRouter();
 
   const [name, setName] = useState('');
-  const [role, setRole] = useState('STUDENT');
+
   const [selectedAvatar, setSelectedAvatar] = useState('');
   const [avatarSeed, setAvatarSeed] = useState(() => String(Date.now()));
   const [error, setError] = useState('');
@@ -75,7 +69,7 @@ export default function OnboardingPage() {
     setError('');
     setSubmitting(true);
     try {
-      await onboard({ name: name.trim(), role, avatarUrl: selectedAvatar || null });
+      await onboard({ name: name.trim(), role: 'STUDENT', avatarUrl: selectedAvatar || null });
       router.push('/dashboard');
     } catch (err: any) {
       setError(err?.response?.data?.error || err.message || 'Something went wrong');
@@ -281,50 +275,7 @@ export default function OnboardingPage() {
             </div>
           </motion.div>
 
-          {/* Role Selection */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55 }}
-            className="mb-8"
-          >
-            <label className="block text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>
-              I am a...
-            </label>
-            <div className="flex flex-col gap-3">
-              {roles.map((r, i) => (
-                <motion.button
-                  key={r.value}
-                  initial={{ opacity: 0, x: -15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.55 + i * 0.1 }}
-                  type="button"
-                  onClick={() => setRole(r.value)}
-                  className="flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border text-left"
-                  style={{
-                    background: role === r.value ? 'linear-gradient(135deg, var(--primary), var(--secondary))' : 'var(--bg)',
-                    borderColor: role === r.value ? 'transparent' : 'var(--border)',
-                    color: role === r.value ? '#fff' : 'var(--text-1)',
-                    boxShadow: role === r.value ? 'var(--shadow-glow)' : 'none',
-                  }}
-                >
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{
-                      background: role === r.value ? 'rgba(255,255,255,0.2)' : `${r.color}15`,
-                      color: role === r.value ? '#fff' : r.color,
-                    }}
-                  >
-                    {r.icon}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-sm">{r.label}</div>
-                    <div className="text-xs mt-0.5" style={{ opacity: role === r.value ? 0.8 : 0.5 }}>{r.desc}</div>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
+
 
           {/* Submit */}
           <motion.button
