@@ -7,7 +7,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { LogoFull } from '@/components/Logo';
 import { Mail, ShieldCheck, ArrowRight, RotateCcw } from 'lucide-react';
 
-export default function VerifyEmailPage() {
+import { Suspense } from 'react';
+
+function VerifyEmailContent() {
   const [code, setCode] = useState<string[]>(Array(6).fill(''));
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -218,5 +220,13 @@ export default function VerifyEmailPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'var(--bg)' }}>Loading...</div>}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

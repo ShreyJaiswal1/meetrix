@@ -94,17 +94,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <motion.aside
         className={`fixed lg:sticky top-0 left-0 h-screen z-50 flex flex-col transition-all duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        } bg-card border-r border-border`}
         style={{
           width: collapsed ? '72px' : '260px',
-          background: 'var(--dark-bg)',
-          borderRight: '1px solid rgba(255,255,255,0.06)',
         }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between px-5 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center justify-between px-5 py-5 border-b border-border">
           {!collapsed ? (
-            <LogoWordmark size={86} className="text-white" />
+            <LogoWordmark size={86} className="text-foreground" />
           ) : (
             <LogoMark size={38} />
           )}
@@ -113,8 +111,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               if (window.innerWidth < 1024) setSidebarOpen(false);
               else setCollapsed(!collapsed);
             }}
-            className="p-1.5 rounded-lg cursor-pointer transition-colors"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            className="p-1.5 rounded-lg cursor-pointer transition-colors text-muted-foreground hover:bg-muted"
           >
             {sidebarOpen ? <X size={18} /> : collapsed ? <ChevronRight size={18} /> : <Menu size={18} />}
           </button>
@@ -132,15 +129,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   collapsed ? 'justify-center' : ''
+                } ${
+                  isActive 
+                    ? 'bg-primary/10 text-primary' 
+                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                 }`}
-                style={{
-                  background: isActive ? 'rgba(124,92,252,0.2)' : 'transparent',
-                  color: isActive ? '#fff' : 'rgba(255,255,255,0.45)',
-                  border: isActive ? '1px solid rgba(124,92,252,0.35)' : '1px solid transparent',
-                }}
                 title={collapsed ? item.label : undefined}
               >
-                <Icon size={18} />
+                <Icon size={18} className={isActive ? 'text-primary' : 'text-muted-foreground opacity-70'} />
                 {!collapsed && <span>{item.label}</span>}
               </Link>
             );
@@ -148,15 +144,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* User Section */}
-        <div className="p-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="p-3 border-t border-border bg-card/50">
           <Link
             href="/dashboard/settings"
             onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${collapsed ? 'justify-center' : ''}`}
-            style={{ color: 'rgba(255,255,255,0.7)' }}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-muted/80 ${collapsed ? 'justify-center' : ''}`}
           >
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 overflow-hidden"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 overflow-hidden shadow-sm"
               style={{ background: user.avatarUrl ? 'transparent' : 'linear-gradient(135deg, var(--primary), var(--accent))' }}
             >
               {user.avatarUrl ? (
@@ -167,11 +162,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white truncate">{user.name}</div>
+                <div className="text-sm font-medium text-foreground truncate">{user.name}</div>
               </div>
             )}
             {!collapsed && (
-              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); logout(); }} className="p-1.5 rounded-lg cursor-pointer transition-colors" style={{ color: 'rgba(255,255,255,0.35)' }} title="Logout">
+              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); logout(); }} className="p-1.5 rounded-lg cursor-pointer transition-colors text-muted-foreground hover:bg-muted hover:text-foreground" title="Logout">
                 <LogOut size={16} />
               </button>
             )}
